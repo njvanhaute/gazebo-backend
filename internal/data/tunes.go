@@ -1,9 +1,11 @@
 package data
 
 import (
+	"database/sql"
 	"time"
 
 	"gazebo.njvanhaute.com/internal/validator"
+	"github.com/lib/pq"
 )
 
 type Tune struct {
@@ -39,4 +41,34 @@ func ValidateTune(v *validator.Validator, tune *Tune) {
 	validStatusList := []string{"germinating", "seedling", "flowering"}
 	v.Check(validator.PermittedValue(tune.Status, validStatusList...), "status", "invalid status value")
 
+}
+
+type TuneModel struct {
+	DB *sql.DB
+}
+
+func (t TuneModel) Insert(tune *Tune) error {
+	query := `
+		INSERT INTO tunes (title, keys, time_signature_upper, time_signature_lower, status)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id, created_at, version`
+
+	args := []any{tune.Title, pq.Array(tune.Keys), tune.TimeSignatureUpper, tune.TimeSignatureLower, tune.Status}
+	return t.DB.QueryRow(query, args...).Scan(&tune.ID, &tune.CreatedAt, &tune.Version)
+}
+
+func (t TuneModel) GetAllForBand(bandId int64) ([]*Tune, error) {
+	return nil, nil
+}
+
+func (t TuneModel) CreateNewVersion(tune *Tune) error {
+	return nil
+}
+
+func (t TuneModel) DeleteVersion(id int64, version int32) error {
+	return nil
+}
+
+func (t TuneModel) DeleteTune(id int64) error {
+	return nil
 }

@@ -41,7 +41,19 @@ func (app *application) createTuneHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	fmt.Fprintf(w, "%+v\n", input)
+	err = app.models.Tunes.Insert(tune)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	headers := make(http.Header)
+	headers.Set("Location", fmt.Sprintf("/v1/tunes/%d", tune.BandID))
+
+	err = app.writeJSON(w, http.StatusCreated, envelope{"tune": tune}, headers)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }
 
 func (app *application) getTunesHandler(w http.ResponseWriter, r *http.Request) {
