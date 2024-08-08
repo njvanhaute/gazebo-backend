@@ -12,15 +12,15 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-func (app *application) readIntParam(name string, r *http.Request) (int64, error) {
+func (app *application) readIDParam(r *http.Request) (int64, error) {
 	params := httprouter.ParamsFromContext(r.Context())
 
-	intParam, err := strconv.ParseInt(params.ByName(name), 10, 64)
-	if err != nil || intParam < 1 {
-		return 0, fmt.Errorf("invalid int passed to parameter \"%s\"", name)
+	id, err := strconv.ParseInt(params.ByName("id"), 10, 64)
+	if err != nil || id < 1 {
+		return 0, fmt.Errorf("invalid id parameter")
 	}
 
-	return intParam, nil
+	return id, nil
 }
 
 type envelope map[string]any

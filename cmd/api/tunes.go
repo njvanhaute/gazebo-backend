@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -48,7 +49,7 @@ func (app *application) createTuneHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	headers := make(http.Header)
-	headers.Set("Location", fmt.Sprintf("/v1/tunes/%d", tune.BandID))
+	headers.Set("Location", fmt.Sprintf("/v1/tunes/%d", tune.ID))
 
 	err = app.writeJSON(w, http.StatusCreated, envelope{"tune": tune}, headers)
 	if err != nil {
@@ -56,8 +57,91 @@ func (app *application) createTuneHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func (app *application) getTunesHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.readIntParam("bandId", r)
+func (app *application) getTuneHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	tune, err := app.models.Tunes.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"tune": tune}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) updateTuneHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	tune, err := app.models.Tunes.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	var input struct {
+		Title              string     `json:"title"`
+		Keys               []data.Key `json:"keys"`
+		TimeSignatureUpper int8       `json:"time_signature_upper"`
+		TimeSignatureLower int8       `json:"time_signature_lower"`
+		Status             string     `json:"status"`
+		BandID             int64      `json:"band_id"`
+	}
+
+	err = app.readJSON(w, r, &input)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	tune.Title = input.Title
+	tune.Keys = input.Keys
+	tune.TimeSignatureUpper = input.TimeSignatureUpper
+	tune.TimeSignatureLower = input.TimeSignatureLower
+	tune.Status = input.Status
+	tune.BandID = input.BandID
+
+	v := validator.New()
+
+	if data.ValidateTune(v, tune); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	err = app.models.Tunes.Update(tune)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"tune": tune}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) getTunesForBandHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return
@@ -76,6 +160,30 @@ func (app *application) getTunesHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	err = app.writeJSON(w, http.StatusOK, envelope{"tune": tune}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) deleteTuneHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	err = app.models.Tunes.Delete(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"message": "tune successfully deleted"}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

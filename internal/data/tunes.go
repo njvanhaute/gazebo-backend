@@ -2,6 +2,7 @@ package data
 
 import (
 	"database/sql"
+	"errors"
 	"time"
 
 	"gazebo.njvanhaute.com/internal/validator"
@@ -57,18 +58,83 @@ func (t TuneModel) Insert(tune *Tune) error {
 	return t.DB.QueryRow(query, args...).Scan(&tune.ID, &tune.CreatedAt, &tune.Version)
 }
 
+func (t TuneModel) Get(id int64) (*Tune, error) {
+	if id < 1 {
+		return nil, ErrRecordNotFound
+	}
+
+	query := `
+		SELECT id, created_at, version, title, keys, time_signature_upper, time_signature_lower, status
+		FROM tunes
+		WHERE id = $1`
+
+	var tune Tune
+	var keys []string
+
+	err := t.DB.QueryRow(query, id).Scan(
+		&tune.ID,
+		&tune.CreatedAt,
+		&tune.Version,
+		&tune.Title,
+		pq.Array(&keys),
+		&tune.TimeSignatureUpper,
+		&tune.TimeSignatureLower,
+		&tune.Status,
+	)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	for _, key := range keys {
+		tune.Keys = append(tune.Keys, Key(key))
+	}
+
+	return &tune, nil
+}
+
 func (t TuneModel) GetAllForBand(bandId int64) ([]*Tune, error) {
 	return nil, nil
 }
 
-func (t TuneModel) CreateNewVersion(tune *Tune) error {
-	return nil
+func (t TuneModel) Update(tune *Tune) error {
+	query := `
+		UPDATE tunes
+		SET title = $1, keys = $2, time_signature_upper = $3, time_signature_lower = $4, status = $5, version = version + 1
+		WHERE id = $6
+		RETURNING version`
+
+	args := []any{tune.Title, pq.Array(tune.Keys), tune.TimeSignatureUpper, tune.TimeSignatureLower, tune.Status, tune.ID}
+	return t.DB.QueryRow(query, args...).Scan(&tune.Version)
 }
 
-func (t TuneModel) DeleteVersion(id int64, version int32) error {
-	return nil
-}
+func (t TuneModel) Delete(id int64) error {
+	if id < 1 {
+		return ErrRecordNotFound
+	}
 
-func (t TuneModel) DeleteTune(id int64) error {
+	query := `
+		DELETE FROM tunes
+		WHERE id = $1`
+
+	result, err := t.DB.Exec(query, id)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return ErrRecordNotFound
+	}
+
 	return nil
 }
