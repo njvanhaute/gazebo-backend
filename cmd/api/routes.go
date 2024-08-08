@@ -17,5 +17,5 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPost, "/v1/tunes", app.createTuneHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/tunes/:bandId", app.getTunesHandler)
 
-	return router
+	return app.recoverPanic(router)
 }
