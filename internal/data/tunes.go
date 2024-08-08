@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"time"
@@ -55,7 +56,11 @@ func (t TuneModel) Insert(tune *Tune) error {
 		RETURNING id, created_at, version`
 
 	args := []any{tune.Title, pq.Array(tune.Keys), tune.TimeSignatureUpper, tune.TimeSignatureLower, tune.Status}
-	return t.DB.QueryRow(query, args...).Scan(&tune.ID, &tune.CreatedAt, &tune.Version)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	return t.DB.QueryRowContext(ctx, query, args...).Scan(&tune.ID, &tune.CreatedAt, &tune.Version)
 }
 
 func (t TuneModel) Get(id int64) (*Tune, error) {
@@ -71,7 +76,10 @@ func (t TuneModel) Get(id int64) (*Tune, error) {
 	var tune Tune
 	var keys []string
 
-	err := t.DB.QueryRow(query, id).Scan(
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err := t.DB.QueryRowContext(ctx, query, id).Scan(
 		&tune.ID,
 		&tune.CreatedAt,
 		&tune.Version,
@@ -106,11 +114,33 @@ func (t TuneModel) Update(tune *Tune) error {
 	query := `
 		UPDATE tunes
 		SET title = $1, keys = $2, time_signature_upper = $3, time_signature_lower = $4, status = $5, version = version + 1
-		WHERE id = $6
+		WHERE id = $6 AND version = $7
 		RETURNING version`
 
-	args := []any{tune.Title, pq.Array(tune.Keys), tune.TimeSignatureUpper, tune.TimeSignatureLower, tune.Status, tune.ID}
-	return t.DB.QueryRow(query, args...).Scan(&tune.Version)
+	args := []any{
+		tune.Title,
+		pq.Array(tune.Keys),
+		tune.TimeSignatureUpper,
+		tune.TimeSignatureLower,
+		tune.Status,
+		tune.ID,
+		tune.Version,
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	err := t.DB.QueryRowContext(ctx, query, args...).Scan(&tune.Version)
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return ErrEditConflict
+		default:
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (t TuneModel) Delete(id int64) error {
@@ -122,7 +152,10 @@ func (t TuneModel) Delete(id int64) error {
 		DELETE FROM tunes
 		WHERE id = $1`
 
-	result, err := t.DB.Exec(query, id)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	result, err := t.DB.ExecContext(ctx, query, id)
 	if err != nil {
 		return err
 	}

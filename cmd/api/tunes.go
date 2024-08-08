@@ -100,12 +100,12 @@ func (app *application) updateTuneHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	var input struct {
-		Title              string     `json:"title"`
+		Title              *string    `json:"title"`
 		Keys               []data.Key `json:"keys"`
-		TimeSignatureUpper int8       `json:"time_signature_upper"`
-		TimeSignatureLower int8       `json:"time_signature_lower"`
-		Status             string     `json:"status"`
-		BandID             int64      `json:"band_id"`
+		TimeSignatureUpper *int8      `json:"time_signature_upper"`
+		TimeSignatureLower *int8      `json:"time_signature_lower"`
+		Status             *string    `json:"status"`
+		BandID             *int64     `json:"band_id"`
 	}
 
 	err = app.readJSON(w, r, &input)
@@ -114,12 +114,32 @@ func (app *application) updateTuneHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	tune.Title = input.Title
-	tune.Keys = input.Keys
-	tune.TimeSignatureUpper = input.TimeSignatureUpper
-	tune.TimeSignatureLower = input.TimeSignatureLower
-	tune.Status = input.Status
-	tune.BandID = input.BandID
+	if input.Title != nil {
+		tune.Title = *input.Title
+	}
+
+	if input.Keys != nil {
+		tune.Keys = input.Keys
+	}
+
+	if input.TimeSignatureUpper != nil {
+		tune.TimeSignatureUpper = *input.TimeSignatureUpper
+	}
+
+	if input.TimeSignatureLower != nil {
+		tune.TimeSignatureLower = *input.TimeSignatureLower
+	}
+
+	if input.Status != nil {
+		tune.Status = *input.Status
+	}
+
+	if input.BandID != nil {
+		tune.BandID = *input.BandID
+	}
+
+	// TODO: REMOVE THIS
+	tune.BandID = 1
 
 	v := validator.New()
 
@@ -130,7 +150,12 @@ func (app *application) updateTuneHandler(w http.ResponseWriter, r *http.Request
 
 	err = app.models.Tunes.Update(tune)
 	if err != nil {
-		app.serverErrorResponse(w, r, err)
+		switch {
+		case errors.Is(err, data.ErrEditConflict):
+			app.editConflictResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
 		return
 	}
 
