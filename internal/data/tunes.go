@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"gazebo.njvanhaute.com/internal/validator"
@@ -107,25 +108,30 @@ func (t TuneModel) Get(id int64) (*Tune, error) {
 	return &tune, nil
 }
 
-func (t TuneModel) GetAll(bandId int64, title string, keys []string, statuses []string, filters Filters) ([]*Tune, error) {
-	query := `
-		SELECT id, created_at, version, title, keys, time_signature_upper, time_signature_lower, status, band_id
+func (t TuneModel) GetAll(bandId int64, title string, keys []string, statuses []string, filters Filters) ([]*Tune, Metadata, error) {
+	query := fmt.Sprintf(`
+		SELECT count(*) OVER(), id, created_at, version, title, keys, time_signature_upper, time_signature_lower, status, band_id
 		FROM tunes
 		WHERE band_id = $1
 		AND (to_tsvector('simple', title) @@ plainto_tsquery('simple', $2) OR $2 = '')
 		AND (keys @> $3 OR $3 = '{}')
 		AND (status = ANY($4) or $4 = '{}')
-		ORDER BY id`
+		ORDER BY %s %s, id ASC
+		LIMIT $5 OFFSET $6`, filters.sortColumn(), filters.sortDirection())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	rows, err := t.DB.QueryContext(ctx, query, bandId, title, pq.Array(keys), pq.Array(statuses))
+	args := []any{bandId, title, pq.Array(keys), pq.Array(statuses), filters.limit(), filters.offset()}
+
+	rows, err := t.DB.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
 
 	defer rows.Close()
+
+	totalRecords := 0
 	tunes := []*Tune{}
 
 	for rows.Next() {
@@ -133,6 +139,7 @@ func (t TuneModel) GetAll(bandId int64, title string, keys []string, statuses []
 		var keys []string
 
 		err := rows.Scan(
+			&totalRecords,
 			&tune.ID,
 			&tune.CreatedAt,
 			&tune.Version,
@@ -145,7 +152,7 @@ func (t TuneModel) GetAll(bandId int64, title string, keys []string, statuses []
 		)
 
 		if err != nil {
-			return nil, err
+			return nil, Metadata{}, err
 		}
 
 		for _, key := range keys {
@@ -156,10 +163,12 @@ func (t TuneModel) GetAll(bandId int64, title string, keys []string, statuses []
 	}
 
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
 
-	return tunes, nil
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+
+	return tunes, metadata, nil
 }
 
 func (t TuneModel) Update(tune *Tune) error {
