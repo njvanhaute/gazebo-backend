@@ -31,18 +31,20 @@ func (b BandMemberModel) Insert(member *BandMember) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	result, err := b.DB.ExecContext(ctx, query, args...)
+	_, err := b.DB.ExecContext(ctx, query, args...)
 	if err != nil {
-		return err
-	}
+		println(err.Error())
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rowsAffected == 0 {
-		return ErrRecordAlreadyExists
+		switch {
+		case err.Error() == `pq: duplicate key value violates unique constraint "band_user_pkey"`:
+			return ErrRecordAlreadyExists
+		case err.Error() == `pq: insert or update on table "band_members" violates foreign key constraint "band_members_user_id_fkey"`:
+			return ErrUserNotFound
+		case err.Error() == `pq: insert or update on table "band_members" violates foreign key constraint "band_members_band_id_fkey"`:
+			return ErrBandNotFound
+		default:
+			return err
+		}
 	}
 
 	return nil

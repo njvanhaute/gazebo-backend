@@ -8,6 +8,8 @@ import (
 var (
 	ErrRecordAlreadyExists = errors.New("record already exists")
 	ErrRecordNotFound      = errors.New("record not found")
+	ErrUserNotFound        = errors.New("user not found")
+	ErrBandNotFound        = errors.New("band not found")
 	ErrEditConflict        = errors.New("edit conflict")
 )
 
