@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"expvar"
 	"flag"
+	"fmt"
 	"log/slog"
 	"os"
 	"runtime"
@@ -13,11 +14,14 @@ import (
 
 	"gazebo.njvanhaute.com/internal/data"
 	"gazebo.njvanhaute.com/internal/mailer"
+	"gazebo.njvanhaute.com/internal/vcs"
 
 	_ "github.com/lib/pq"
 )
 
-const version = "1.0.0"
+var (
+	version = vcs.Version()
+)
 
 type config struct {
 	port int
@@ -72,7 +76,14 @@ func main() {
 	flag.StringVar(&cfg.smtp.password, "smtp-password", "", "SMTP password")
 	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Gazebo <no-reply@gazebo.njvanhaute.com>", "SMTP sender")
 
+	displayVersion := flag.Bool("version", false, "Display version and exit")
+
 	flag.Parse()
+
+	if *displayVersion {
+		fmt.Printf("Version:\t%s\n", version)
+		os.Exit(0)
+	}
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
