@@ -5,7 +5,11 @@
 Hi,
 Thanks for signing up for a Gazebo account. We're excited to have you on board!
 
-For future reference, your user ID number is {{.ID}}.
+To activate your account, please paste the following token into the User Activation form in the app:
+
+{{.activationToken}}
+
+Please note that this is a one-time use token and it will expire in 3 days.
 
 Thanks,
 The Gazebo Team
@@ -22,7 +26,9 @@ The Gazebo Team
 <body>
     <p>Hi,</p>
     <p>Thanks for signing up for a Gazebo account. We're excited to have you on board!</p>
-    <p>For future reference, your user ID number is {{.ID}}.</p>
+    <p>To activate your account, please paste the following token into the User Activation form in the app:</p>
+    <pre><code>{{.activationToken}}</code></pre>
+    <p>Please note that this is a one-time use token and it will expire in 3 days.</p>
     <p>Thanks,</p>
     <p>The Gazebo Team</p>
 </body>

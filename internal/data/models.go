@@ -6,22 +6,25 @@ import (
 )
 
 var (
-	ErrRecordNotFound = errors.New("record not found")
-	ErrEditConflict   = errors.New("edit conflict")
+	ErrRecordAlreadyExists = errors.New("record already exists")
+	ErrRecordNotFound      = errors.New("record not found")
+	ErrEditConflict        = errors.New("edit conflict")
 )
 
 type Models struct {
-	Bands  BandModel
-	Tokens TokenModel
-	Tunes  TuneModel
-	Users  UserModel
+	BandMembers BandMemberModel
+	Bands       BandModel
+	Tokens      TokenModel
+	Tunes       TuneModel
+	Users       UserModel
 }
 
 func NewModels(db *sql.DB) Models {
 	return Models{
-		Bands:  BandModel{DB: db},
-		Tokens: TokenModel{DB: db},
-		Tunes:  TuneModel{DB: db},
-		Users:  UserModel{DB: db},
+		BandMembers: BandMemberModel{DB: db},
+		Bands:       BandModel{DB: db},
+		Tokens:      TokenModel{DB: db},
+		Tunes:       TuneModel{DB: db},
+		Users:       UserModel{DB: db},
 	}
 }
