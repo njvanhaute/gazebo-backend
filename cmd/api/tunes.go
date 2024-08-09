@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	"gazebo.njvanhaute.com/internal/data"
 	"gazebo.njvanhaute.com/internal/validator"
@@ -165,29 +164,39 @@ func (app *application) updateTuneHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func (app *application) getTunesForBandHandler(w http.ResponseWriter, r *http.Request) {
-	id, err := app.readIDParam(r)
-	if err != nil {
-		app.notFoundResponse(w, r)
+func (app *application) listTunesHandler(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		BandID             int64
+		Title              string
+		Keys               []string
+		TimeSignatureUpper int8
+		TimeSignatureLower int8
+		Statuses           []string
+		data.Filters
+	}
+
+	v := validator.New()
+	qs := r.URL.Query()
+
+	input.BandID = app.readInt64(qs, "band_id", 1, v)
+	input.Title = app.readString(qs, "title", "")
+	input.Keys = app.readCSV(qs, "keys", []string{})
+	input.TimeSignatureUpper = app.readInt8(qs, "time_signature_upper", 4, v)
+	input.TimeSignatureLower = app.readInt8(qs, "time_signature_lower", 4, v)
+	input.Statuses = app.readCSV(qs, "statuses", []string{})
+
+	input.Page = app.readInt(qs, "page", 1, v)
+	input.PageSize = app.readInt(qs, "page_size", 20, v)
+
+	input.Sort = app.readString(qs, "sort", "id")
+	input.Filters.SortSafelist = []string{"id", "band_id", "title", "status", "-id", "-band_id", "-title", "-status"}
+
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
 
-	tune := data.Tune{
-		ID:                 id,
-		CreatedAt:          time.Now(),
-		Version:            1,
-		Title:              "Pickin' Sage",
-		Keys:               []data.Key{"F major"},
-		TimeSignatureUpper: 4,
-		TimeSignatureLower: 4,
-		BandID:             1,
-		Status:             "germinating",
-	}
-
-	err = app.writeJSON(w, http.StatusOK, envelope{"tune": tune}, nil)
-	if err != nil {
-		app.serverErrorResponse(w, r, err)
-	}
+	fmt.Fprintf(w, "%+v\n", input)
 }
 
 func (app *application) deleteTuneHandler(w http.ResponseWriter, r *http.Request) {
