@@ -135,33 +135,23 @@ func (app *application) readInt(qs url.Values, key string, defaultValue int, v *
 	return i
 }
 
-func (app *application) readInt8(qs url.Values, key string, defaultValue int8, v *validator.Validator) int8 {
+func (app *application) readBandID(qs url.Values, key string, v *validator.Validator) int64 {
 	s := qs.Get(key)
 
 	if s == "" {
-		return defaultValue
+		v.AddError(key, "must be provided")
+		return -1
 	}
 
 	i, err := strconv.ParseInt(s, 10, 8)
 	if err != nil {
 		v.AddError(key, "must be an integer value")
-		return defaultValue
+		return -1
 	}
 
-	return int8(i)
-}
-
-func (app *application) readInt64(qs url.Values, key string, defaultValue int64, v *validator.Validator) int64 {
-	s := qs.Get(key)
-
-	if s == "" {
-		return defaultValue
-	}
-
-	i, err := strconv.ParseInt(s, 10, 8)
-	if err != nil {
-		v.AddError(key, "must be an integer value")
-		return defaultValue
+	if i < 1 {
+		v.AddError(key, "must be a positive integer ID")
+		return -1
 	}
 
 	return int64(i)

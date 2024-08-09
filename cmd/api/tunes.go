@@ -104,7 +104,6 @@ func (app *application) updateTuneHandler(w http.ResponseWriter, r *http.Request
 		TimeSignatureUpper *int8      `json:"time_signature_upper"`
 		TimeSignatureLower *int8      `json:"time_signature_lower"`
 		Status             *string    `json:"status"`
-		BandID             *int64     `json:"band_id"`
 	}
 
 	err = app.readJSON(w, r, &input)
@@ -133,13 +132,6 @@ func (app *application) updateTuneHandler(w http.ResponseWriter, r *http.Request
 		tune.Status = *input.Status
 	}
 
-	if input.BandID != nil {
-		tune.BandID = *input.BandID
-	}
-
-	// TODO: REMOVE THIS
-	tune.BandID = 1
-
 	v := validator.New()
 
 	if data.ValidateTune(v, tune); !v.Valid() {
@@ -166,23 +158,20 @@ func (app *application) updateTuneHandler(w http.ResponseWriter, r *http.Request
 
 func (app *application) listTunesHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		BandID             int64
-		Title              string
-		Keys               []string
-		TimeSignatureUpper int8
-		TimeSignatureLower int8
-		Statuses           []string
+		BandID   int64
+		Title    string
+		Keys     []string
+		Statuses []string
 		data.Filters
 	}
 
 	v := validator.New()
 	qs := r.URL.Query()
 
-	input.BandID = app.readInt64(qs, "band_id", 1, v)
+	input.BandID = app.readBandID(qs, "band_id", v)
+
 	input.Title = app.readString(qs, "title", "")
 	input.Keys = app.readCSV(qs, "keys", []string{})
-	input.TimeSignatureUpper = app.readInt8(qs, "time_signature_upper", 4, v)
-	input.TimeSignatureLower = app.readInt8(qs, "time_signature_lower", 4, v)
 	input.Statuses = app.readCSV(qs, "statuses", []string{})
 
 	input.Page = app.readInt(qs, "page", 1, v)
@@ -196,7 +185,16 @@ func (app *application) listTunesHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	fmt.Fprintf(w, "%+v\n", input)
+	tunes, err := app.models.Tunes.GetAll(input.BandID, input.Title, input.Keys, input.Statuses, input.Filters)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"tunes": tunes}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }
 
 func (app *application) deleteTuneHandler(w http.ResponseWriter, r *http.Request) {

@@ -51,11 +51,11 @@ type TuneModel struct {
 
 func (t TuneModel) Insert(tune *Tune) error {
 	query := `
-		INSERT INTO tunes (title, keys, time_signature_upper, time_signature_lower, status)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO tunes (title, keys, time_signature_upper, time_signature_lower, status, band_id)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id, created_at, version`
 
-	args := []any{tune.Title, pq.Array(tune.Keys), tune.TimeSignatureUpper, tune.TimeSignatureLower, tune.Status}
+	args := []any{tune.Title, pq.Array(tune.Keys), tune.TimeSignatureUpper, tune.TimeSignatureLower, tune.Status, tune.BandID}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -69,7 +69,7 @@ func (t TuneModel) Get(id int64) (*Tune, error) {
 	}
 
 	query := `
-		SELECT id, created_at, version, title, keys, time_signature_upper, time_signature_lower, status
+		SELECT id, created_at, version, title, keys, time_signature_upper, time_signature_lower, status, band_id
 		FROM tunes
 		WHERE id = $1`
 
@@ -88,6 +88,7 @@ func (t TuneModel) Get(id int64) (*Tune, error) {
 		&tune.TimeSignatureUpper,
 		&tune.TimeSignatureLower,
 		&tune.Status,
+		&tune.BandID,
 	)
 
 	if err != nil {
@@ -106,8 +107,59 @@ func (t TuneModel) Get(id int64) (*Tune, error) {
 	return &tune, nil
 }
 
-func (t TuneModel) GetAllForBand(bandId int64) ([]*Tune, error) {
-	return nil, nil
+func (t TuneModel) GetAll(bandId int64, title string, keys []string, statuses []string, filters Filters) ([]*Tune, error) {
+	query := `
+		SELECT id, created_at, version, title, keys, time_signature_upper, time_signature_lower, status, band_id
+		FROM tunes
+		WHERE band_id = $1
+		AND (to_tsvector('simple', title) @@ plainto_tsquery('simple', $2) OR $2 = '')
+		AND (keys @> $3 OR $3 = '{}')
+		AND (status = ANY($4) or $4 = '{}')
+		ORDER BY id`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	rows, err := t.DB.QueryContext(ctx, query, bandId, title, pq.Array(keys), pq.Array(statuses))
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	tunes := []*Tune{}
+
+	for rows.Next() {
+		var tune Tune
+		var keys []string
+
+		err := rows.Scan(
+			&tune.ID,
+			&tune.CreatedAt,
+			&tune.Version,
+			&tune.Title,
+			pq.Array(&keys),
+			&tune.TimeSignatureUpper,
+			&tune.TimeSignatureLower,
+			&tune.Status,
+			&tune.BandID,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		for _, key := range keys {
+			tune.Keys = append(tune.Keys, Key(key))
+		}
+
+		tunes = append(tunes, &tune)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return tunes, nil
 }
 
 func (t TuneModel) Update(tune *Tune) error {
