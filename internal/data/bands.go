@@ -27,17 +27,40 @@ type BandModel struct {
 }
 
 func (b BandModel) Insert(band *Band) error {
-	query := `
+	insertBandQuery := `
 		INSERT INTO bands (name, owner_id)
 		VALUES ($1, $2)
 		RETURNING id, created_at, version`
 
 	args := []any{band.Name, band.OwnerID}
 
+	tx, err := b.DB.Begin()
+	if err != nil {
+		return err
+	}
+
+	defer tx.Rollback()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	return b.DB.QueryRowContext(ctx, query, args...).Scan(&band.ID, &band.CreatedAt, &band.Version)
+	err = tx.QueryRowContext(ctx, insertBandQuery, args...).Scan(&band.ID, &band.CreatedAt, &band.Version)
+	if err != nil {
+		return err
+	}
+
+	addOwnerToBandQuery := `
+		INSERT INTO band_members (band_id, user_id)
+		VALUES ($1, $2)`
+
+	args = []any{band.ID, band.OwnerID}
+
+	_, err = tx.ExecContext(ctx, addOwnerToBandQuery, args...)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (b BandModel) Get(id int64) (*Band, error) {

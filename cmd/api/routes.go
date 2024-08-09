@@ -20,18 +20,18 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPost, "/v1/tunes", app.requireActivatedUser(app.createTuneHandler))
 	router.HandlerFunc(http.MethodPatch, "/v1/tunes/:id", app.requireActivatedUser(app.updateTuneHandler))
 	router.HandlerFunc(http.MethodDelete, "/v1/tunes/:id", app.requireActivatedUser(app.deleteTuneHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/bands/:id/tunes/", app.requireActivatedUser(app.listTunesForBandHandler))
 
 	// Bands
 	router.HandlerFunc(http.MethodGet, "/v1/bands/:id", app.requireActivatedUser(app.getBandHandler))
 	router.HandlerFunc(http.MethodPost, "/v1/bands", app.requireActivatedUser(app.createBandHandler))
 	router.HandlerFunc(http.MethodPatch, "/v1/bands/:id", app.requireActivatedUser(app.updateBandHandler))
 	router.HandlerFunc(http.MethodDelete, "/v1/bands/:id", app.requireActivatedUser(app.deleteBandHandler))
-	router.HandlerFunc(http.MethodGet, "/v1/bands/:id/tunes/", app.requireActivatedUser(app.listTunesForBandHandler))
 
 	// Band members
 	router.HandlerFunc(http.MethodPost, "/v1/bands/:id/users", app.requireActivatedUser(app.addUserToBandHandler))
-	router.HandlerFunc(http.MethodGet, "/v1/bands/:id/users", app.requireActivatedUser(app.getUsersInBandHandler))
 	router.HandlerFunc(http.MethodDelete, "/v1/bands/:id/users/:userId", app.requireActivatedUser(app.removeUserFromBandHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/bands/:id/users", app.requireActivatedUser(app.getUsersInBandHandler))
 	router.HandlerFunc(http.MethodGet, "/v1/users/:id/bands", app.requireActivatedUser(app.getBandsJoinedByUserHandler))
 
 	// Users
