@@ -35,6 +35,7 @@ func (app *application) routes() http.Handler {
 
 	// Users
 	router.HandlerFunc(http.MethodPost, "/v1/users", app.registerUserHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/users/:id/bands", app.getBandsJoinedByUser)
 
 	return app.recoverPanic(app.rateLimit(router))
 }
