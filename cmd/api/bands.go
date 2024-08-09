@@ -229,7 +229,7 @@ func (app *application) addUserToBandHandler(w http.ResponseWriter, r *http.Requ
 	headers := make(http.Header)
 	headers.Set("Location", fmt.Sprintf("/v1/bands/%d/users/%d", member.BandID, member.UserID))
 
-	err = app.writeJSON(w, http.StatusCreated, envelope{"band_member": member}, headers)
+	err = app.writeJSON(w, http.StatusCreated, envelope{"member": member}, headers)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
@@ -262,7 +262,7 @@ func (app *application) removeUserFromBandHandler(w http.ResponseWriter, r *http
 
 	requestingUser := app.contextGetUser(r)
 
-	if band.OwnerID != requestingUser.ID {
+	if requestingUser.ID != userToBeDeletedID && requestingUser.ID != band.OwnerID {
 		app.notPermittedResponse(w, r)
 		return
 	}
