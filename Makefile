@@ -95,3 +95,10 @@ production_host_ip = '143.198.168.72'
 .PHONY: production/connect
 production/connect:
 	ssh gazebo@${production_host_ip}
+
+## production/deploy/api: deploy the api to production
+.PHONY: production/deploy/api
+production/deploy/api:
+	rsync -P ./bin/linux_amd64/api gazebo@${production_host_ip}:~
+	rsync -rP --delete ./migrations gazebo@${production_host_ip}:~
+	ssh -t gazebo@${production_host_ip} 'migrate -path ~/migrations -database $$GAZEBO_DB_DSN up'
