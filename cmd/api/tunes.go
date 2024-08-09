@@ -156,9 +156,14 @@ func (app *application) updateTuneHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func (app *application) listTunesHandler(w http.ResponseWriter, r *http.Request) {
+func (app *application) listTunesForBandHandler(w http.ResponseWriter, r *http.Request) {
+	bandID, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
 	var input struct {
-		BandID   int64
 		Title    string
 		Keys     []string
 		Statuses []string
@@ -167,8 +172,6 @@ func (app *application) listTunesHandler(w http.ResponseWriter, r *http.Request)
 
 	v := validator.New()
 	qs := r.URL.Query()
-
-	input.BandID = app.readBandID(qs, "band_id", v)
 
 	input.Title = app.readString(qs, "title", "")
 	input.Keys = app.readCSV(qs, "keys", []string{})
@@ -185,7 +188,7 @@ func (app *application) listTunesHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	tunes, metadata, err := app.models.Tunes.GetAll(input.BandID, input.Title, input.Keys, input.Statuses, input.Filters)
+	tunes, metadata, err := app.models.Tunes.GetAll(bandID, input.Title, input.Keys, input.Statuses, input.Filters)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return

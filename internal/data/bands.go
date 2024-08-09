@@ -11,6 +11,7 @@ import (
 
 type Band struct {
 	ID        int64     `json:"id"`
+	OwnerID   int64     `json:"owner_id"`
 	CreatedAt time.Time `json:"created_at"`
 	Version   int32     `json:"version"`
 	Name      string    `json:"name"`
@@ -27,11 +28,11 @@ type BandModel struct {
 
 func (b BandModel) Insert(band *Band) error {
 	query := `
-		INSERT INTO bands (name)
-		VALUES ($1)
+		INSERT INTO bands (name, owner_id)
+		VALUES ($1, $2)
 		RETURNING id, created_at, version`
 
-	args := []any{band.Name}
+	args := []any{band.Name, band.OwnerID}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -45,7 +46,7 @@ func (b BandModel) Get(id int64) (*Band, error) {
 	}
 
 	query := `
-		SELECT id, created_at, version, name
+		SELECT id, created_at, version, name, owner_id
 		FROM bands
 		WHERE id = $1`
 
@@ -59,6 +60,7 @@ func (b BandModel) Get(id int64) (*Band, error) {
 		&band.CreatedAt,
 		&band.Version,
 		&band.Name,
+		&band.OwnerID,
 	)
 
 	if err != nil {
@@ -76,12 +78,13 @@ func (b BandModel) Get(id int64) (*Band, error) {
 func (b BandModel) Update(band *Band) error {
 	query := `
 		UPDATE bands
-		SET name = $1, version = version + 1
-		WHERE id = $2 AND version = $3
+		SET name = $1, owner_id = $2, version = version + 1
+		WHERE id = $3 AND version = $4
 		RETURNING version`
 
 	args := []any{
 		band.Name,
+		band.OwnerID,
 		band.ID,
 		band.Version,
 	}

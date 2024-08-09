@@ -139,28 +139,6 @@ func (app *application) readInt(qs url.Values, key string, defaultValue int, v *
 	return i
 }
 
-func (app *application) readBandID(qs url.Values, key string, v *validator.Validator) int64 {
-	s := qs.Get(key)
-
-	if s == "" {
-		v.AddError(key, "must be provided")
-		return -1
-	}
-
-	i, err := strconv.ParseInt(s, 10, 8)
-	if err != nil {
-		v.AddError(key, "must be an integer value")
-		return -1
-	}
-
-	if i < 1 {
-		v.AddError(key, "must be a positive integer ID")
-		return -1
-	}
-
-	return int64(i)
-}
-
 func (app *application) background(fn func()) {
 	app.wg.Add(1)
 
