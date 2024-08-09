@@ -68,12 +68,34 @@ func (app *application) addBandMember(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) getBandMembers(w http.ResponseWriter, r *http.Request) {
-	// TODO
-	id, err := app.readIDParam(r)
+	bandID, err := app.readIDParam(r)
 	if err != nil {
-		panic("help me")
+		app.notFoundResponse(w, r)
+		return
 	}
-	print(id)
+
+	// Make sure we have a real band ID
+	_, err = app.models.Bands.Get(bandID)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	members, err := app.models.BandMembers.GetAllUsersForBand(bandID)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"band_id": bandID, "members": members}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }
 
 func (app *application) deleteBandMember(w http.ResponseWriter, r *http.Request) {
