@@ -101,4 +101,13 @@ production/connect:
 production/deploy/api:
 	rsync -P ./bin/linux_amd64/api gazebo@${production_host_ip}:~
 	rsync -rP --delete ./migrations gazebo@${production_host_ip}:~
-	ssh -t gazebo@${production_host_ip} 'migrate -path ~/migrations -database $$GAZEBO_DB_DSN up'
+	rsync -P ./remote/production/api.service gazebo@${production_host_ip}:~
+	rsync -P ./remote/production/Caddyfile gazebo@${production_host_ip}:~
+	ssh -t gazebo@${production_host_ip} '\
+		migrate -path ~/migrations -database $$GAZEBO_DB_DSN up \
+		&& sudo mv ~/api.service /etc/systemd/system/ \
+		&& sudo systemctl enable api \
+		&& sudo systemctl restart api \
+		&& sudo mv ~/Caddyfile /etc/caddy/ \
+		&& sudo systemctl reload caddy \
+		'

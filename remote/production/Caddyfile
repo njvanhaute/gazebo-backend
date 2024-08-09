@@ -1,0 +1,8 @@
+{
+    email njvanhaute@gmail.com
+}
+
+api.gazebosoftware.com {
+    respond /debug/* "Not Permitted" 403
+    reverse_proxy localhost:4000
+}
