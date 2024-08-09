@@ -1,1 +1,2 @@
+ALTER TABLE bands DROP COLUMN owner_id;
 DROP TABLE IF EXISTS users;
