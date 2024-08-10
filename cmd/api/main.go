@@ -24,9 +24,10 @@ var (
 )
 
 type config struct {
-	port int
-	env  string
-	db   struct {
+	port        int
+	env         string
+	authEnabled bool
+	db          struct {
 		dsn          string
 		maxOpenConns int
 		maxIdleConns int
@@ -75,6 +76,8 @@ func main() {
 	flag.StringVar(&cfg.smtp.username, "smtp-username", "", "SMTP username")
 	flag.StringVar(&cfg.smtp.password, "smtp-password", "", "SMTP password")
 	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Gazebo <no-reply@gazebo.njvanhaute.com>", "SMTP sender")
+
+	flag.BoolVar(&cfg.authEnabled, "require-auth", true, "Require authentication")
 
 	displayVersion := flag.Bool("version", false, "Display version and exit")
 

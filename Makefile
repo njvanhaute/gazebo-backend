@@ -22,7 +22,7 @@ confirm:
 ## run/api: run the cmd/api application
 .PHONY: run/api
 run/api:
-	go run ./cmd/api -db-dsn=${GAZEBO_DB_DSN}
+	go run ./cmd/api -db-dsn=${GAZEBO_DB_DSN} -smtp-username=${SMTP_USERNAME} -smtp-password=${SMTP_PASSWORD} -require-auth=false
 
 ## wrun/api: run the cmd/api application with auto reload
 .PHONY: wrun/api
