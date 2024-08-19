@@ -21,7 +21,7 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPost, "/v1/tunes", app.requireActivatedUser(app.createTuneHandler))
 	router.HandlerFunc(http.MethodPatch, "/v1/tunes/:id", app.requireActivatedUser(app.updateTuneHandler))
 	router.HandlerFunc(http.MethodDelete, "/v1/tunes/:id", app.requireActivatedUser(app.deleteTuneHandler))
-	router.HandlerFunc(http.MethodGet, "/v1/bands/:id/tunes/", app.requireActivatedUser(app.listTunesForBandHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/bands/:id/tunes", app.requireActivatedUser(app.listTunesForBandHandler))
 
 	// Bands
 	router.HandlerFunc(http.MethodGet, "/v1/bands/:id", app.requireActivatedUser(app.getBandHandler))

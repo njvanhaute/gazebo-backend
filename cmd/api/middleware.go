@@ -127,7 +127,6 @@ func (app *application) requireAuthenticatedUser(next http.HandlerFunc) http.Han
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if app.config.authEnabled {
 			user := app.contextGetUser(r)
-
 			if user.IsAnonymous() {
 				app.authenticationRequiredResponse(w, r)
 				return
@@ -142,7 +141,6 @@ func (app *application) requireActivatedUser(next http.HandlerFunc) http.Handler
 	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if app.config.authEnabled {
 			user := app.contextGetUser(r)
-
 			if !user.Activated {
 				app.inactiveAccountResponse(w, r)
 				return
