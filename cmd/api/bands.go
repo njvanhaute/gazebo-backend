@@ -73,6 +73,26 @@ func (app *application) getBandHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (app *application) getMyBandsHandler(w http.ResponseWriter, r *http.Request) {
+	user := app.contextGetUser(r)
+
+	bands, err := app.models.BandMembers.GetAllBandsForUser(user.ID)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"bands": bands}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
 func (app *application) updateBandHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil {

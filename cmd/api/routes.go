@@ -28,6 +28,7 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPost, "/v1/bands", app.requireActivatedUser(app.createBandHandler))
 	router.HandlerFunc(http.MethodPatch, "/v1/bands/:id", app.requireActivatedUser(app.updateBandHandler))
 	router.HandlerFunc(http.MethodDelete, "/v1/bands/:id", app.requireActivatedUser(app.deleteBandHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/my/bands", app.requireActivatedUser(app.getMyBandsHandler))
 
 	// Band members
 	router.HandlerFunc(http.MethodPost, "/v1/bands/:id/users", app.requireActivatedUser(app.addUserToBandHandler))
