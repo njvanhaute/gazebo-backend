@@ -89,3 +89,8 @@ func (app *application) cannotRemoveOwnerResponse(w http.ResponseWriter, r *http
 	message := "you cannot remove an owner from the group they own"
 	app.errorResponse(w, r, http.StatusUnprocessableEntity, message)
 }
+
+func (app *application) missingFileResponse(w http.ResponseWriter, r *http.Request) {
+	message := "no file data was found in the request"
+	app.errorResponse(w, r, http.StatusBadRequest, message)
+}

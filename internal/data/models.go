@@ -19,6 +19,8 @@ type Models struct {
 	Tokens      TokenModel
 	Tunes       TuneModel
 	Users       UserModel
+	Documents   DocumentModel
+	Recordings  RecordingModel
 }
 
 func NewModels(db *sql.DB) Models {
@@ -28,5 +30,7 @@ func NewModels(db *sql.DB) Models {
 		Tokens:      TokenModel{DB: db},
 		Tunes:       TuneModel{DB: db},
 		Users:       UserModel{DB: db},
+		Documents:   DocumentModel{DB: db},
+		Recordings:  RecordingModel{DB: db},
 	}
 }
