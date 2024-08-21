@@ -29,7 +29,7 @@ func (app *application) serve() error {
 		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 		s := <-quit
 
-		app.logger.Info("caught signal", "signal", s.String())
+		app.logger.Info("shutting down server", "signal", s.String())
 
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
@@ -42,7 +42,7 @@ func (app *application) serve() error {
 		app.logger.Info("completing background tasks", "addr", srv.Addr)
 
 		app.wg.Wait()
-		shutdownError <- srv.Shutdown(ctx)
+		shutdownError <- nil
 	}()
 
 	app.logger.Info("starting server", "addr", srv.Addr, "env", app.config.env)
