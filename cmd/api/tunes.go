@@ -207,6 +207,30 @@ func (app *application) deleteTuneHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// Retrieve associated tune
+	tune, err := app.models.Tunes.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	// Make sure user is in band that owns this tune
+	userInBand, err := app.models.BandMembers.UserIsInBand(app.contextGetUser(r).ID, tune.BandID)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	if !userInBand {
+		app.notPermittedResponse(w, r)
+		return
+	}
+
 	err = app.models.Tunes.Delete(id)
 	if err != nil {
 		switch {
