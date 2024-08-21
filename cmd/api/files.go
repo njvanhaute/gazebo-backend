@@ -27,11 +27,16 @@ func (app *application) documentUploadHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	id := uuid.New()
-	filePath := "./docs/" + id.String()
+	tmpDir := "./tmp"
+	outDir := "./docs"
+	tmpPath := tmpDir + "/" + id.String()
+	outPath := outDir + "/" + id.String()
 	var doc *data.Document
 
 	gotFile, gotMetadata := false, false
 	numParts := 0
+
+	defer app.cleanDirectory(tmpDir)
 
 	for {
 		part, err := mr.NextPart()
@@ -60,7 +65,7 @@ func (app *application) documentUploadHandler(w http.ResponseWriter, r *http.Req
 			doc = &data.Document{
 				TuneID:   input.TuneID,
 				OwnerID:  user.ID,
-				FilePath: filePath,
+				FilePath: outPath,
 				FileType: input.FileType,
 				Title:    input.Title,
 			}
@@ -100,14 +105,14 @@ func (app *application) documentUploadHandler(w http.ResponseWriter, r *http.Req
 		}
 
 		if part.FormName() == "file" {
-			outfile, err := os.Create(filePath)
+			outfile, err := os.Create(tmpPath)
 			if err != nil {
 				app.serverErrorResponse(w, r, err)
 				return
 			}
-			defer outfile.Close()
 
 			_, err = io.Copy(outfile, part)
+			outfile.Close()
 			if err != nil {
 				app.serverErrorResponse(w, r, err)
 				return
@@ -119,13 +124,13 @@ func (app *application) documentUploadHandler(w http.ResponseWriter, r *http.Req
 		numParts += 1
 	}
 
-	if numParts != 2 {
-		app.wrongNumberOfPartsResponse(w, r)
+	if !gotFile {
+		app.missingFileResponse(w, r)
 		return
 	}
 
-	if !gotFile {
-		app.missingFileResponse(w, r)
+	if numParts != 2 {
+		app.wrongNumberOfPartsResponse(w, r)
 		return
 	}
 
@@ -134,10 +139,16 @@ func (app *application) documentUploadHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	err = os.Rename(tmpPath, outPath)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
 	err = app.models.Documents.Insert(doc)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
-		err = os.Remove(filePath)
+		err = os.Remove(outPath)
 		if err != nil {
 			app.logger.Error(err.Error())
 		}

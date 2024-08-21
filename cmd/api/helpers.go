@@ -7,12 +7,27 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 
 	"gazebo.njvanhaute.com/internal/validator"
 	"github.com/julienschmidt/httprouter"
 )
+
+func (app *application) cleanDirectory(dir string) {
+	err := os.RemoveAll(dir)
+	if err != nil {
+		app.logger.Error(err.Error())
+		return
+	}
+	// only owner (i.e. gazebo user) should be able to access
+	err = os.MkdirAll(dir, 0700)
+	if err != nil {
+		app.logger.Error(err.Error())
+		return
+	}
+}
 
 func (app *application) readIDParam(r *http.Request) (int64, error) {
 	return app.readIntParam("id", r)
