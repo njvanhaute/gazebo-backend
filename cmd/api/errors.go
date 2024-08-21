@@ -94,3 +94,13 @@ func (app *application) missingFileResponse(w http.ResponseWriter, r *http.Reque
 	message := "no file data was found in the request"
 	app.errorResponse(w, r, http.StatusBadRequest, message)
 }
+
+func (app *application) missingMetadataResponse(w http.ResponseWriter, r *http.Request) {
+	message := "no metadata was found in the request"
+	app.errorResponse(w, r, http.StatusBadRequest, message)
+}
+
+func (app *application) wrongNumberOfPartsResponse(w http.ResponseWriter, r *http.Request) {
+	message := "wrong number of parts sent"
+	app.errorResponse(w, r, http.StatusBadRequest, message)
+}

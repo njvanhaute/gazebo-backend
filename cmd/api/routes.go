@@ -43,6 +43,9 @@ func (app *application) routes() http.Handler {
 	// Authentication
 	router.HandlerFunc(http.MethodPost, "/v1/tokens/authentication", app.createAuthenticationTokenHandler)
 
+	// Documents
+	router.HandlerFunc(http.MethodPost, "/v1/documents", app.documentUploadHandler)
+
 	// Metrics
 	router.Handler(http.MethodGet, "/debug/vars", expvar.Handler())
 

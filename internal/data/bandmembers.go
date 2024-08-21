@@ -97,6 +97,31 @@ func (b BandMemberModel) GetAllBandsForUser(id int64) ([]*Band, error) {
 	return bands, nil
 }
 
+func (b BandMemberModel) UserIsInBand(userId int64, bandId int64) (bool, error) {
+	if userId < 1 || bandId < 1 {
+		return false, ErrRecordNotFound
+	}
+
+	query := `
+		SELECT COUNT(*)
+		FROM band_members
+		WHERE user_id = $1 AND band_id = $2`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	count := 0
+	args := []any{userId, bandId}
+
+	err := b.DB.QueryRowContext(ctx, query, args...).Scan(&count)
+
+	if err != nil {
+		return false, err
+	}
+
+	return count == 1, nil
+}
+
 func (b BandMemberModel) GetAllUsersForBand(id int64) ([]*User, error) {
 	if id < 1 {
 		return nil, ErrRecordNotFound

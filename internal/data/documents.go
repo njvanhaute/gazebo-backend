@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"time"
+
+	"gazebo.njvanhaute.com/internal/validator"
 )
 
 type Document struct {
@@ -18,6 +20,15 @@ type Document struct {
 
 type DocumentModel struct {
 	DB *sql.DB
+}
+
+func ValidateDocument(v *validator.Validator, doc *Document) {
+	v.Check(doc.FileType != "", "file_type", "must be provided")
+	validFileTypes := []string{"pdf"}
+	v.Check(validator.PermittedValue(doc.FileType, validFileTypes...), "file_type", "invalid file type")
+
+	v.Check(doc.Title != "", "title", "must be provided")
+	v.Check(len(doc.Title) <= 500, "title", "must not be more than 500 bytes long")
 }
 
 func (d DocumentModel) Insert(doc *Document) error {
