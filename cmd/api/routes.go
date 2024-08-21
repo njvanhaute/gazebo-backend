@@ -47,6 +47,7 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, "/v1/tunes/:id/documents", app.requireActivatedUser(app.listDocumentsForTuneHandler))
 	router.HandlerFunc(http.MethodGet, "/v1/documents/:id", app.requireActivatedUser(app.downloadDocumentHandler))
 	router.HandlerFunc(http.MethodPost, "/v1/documents", app.requireActivatedUser(app.uploadDocumentHandler))
+	router.HandlerFunc(http.MethodDelete, "/v1/documents/:id", app.requireActivatedUser(app.deleteDocumentHandler))
 
 	// Metrics
 	router.Handler(http.MethodGet, "/debug/vars", expvar.Handler())

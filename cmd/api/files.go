@@ -253,3 +253,45 @@ func (app *application) downloadDocumentHandler(w http.ResponseWriter, r *http.R
 		app.serverErrorResponse(w, r, err)
 	}
 }
+
+func (app *application) deleteDocumentHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	doc, err := app.models.Documents.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	user := app.contextGetUser(r)
+
+	if doc.OwnerID != user.ID {
+		app.notPermittedResponse(w, r)
+		return
+	}
+
+	err = app.models.Documents.Delete(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"message": "tune successfully deleted"}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
