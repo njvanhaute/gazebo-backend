@@ -44,7 +44,9 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPost, "/v1/tokens/authentication", app.createAuthenticationTokenHandler)
 
 	// Documents
-	router.HandlerFunc(http.MethodPost, "/v1/documents", app.documentUploadHandler)
+	router.HandlerFunc(http.MethodGet, "/v1/tunes/:id/documents", app.requireActivatedUser(app.listDocumentsForTuneHandler))
+	router.HandlerFunc(http.MethodGet, "/v1/documents/:id", app.requireActivatedUser(app.downloadDocumentHandler))
+	router.HandlerFunc(http.MethodPost, "/v1/documents", app.requireActivatedUser(app.uploadDocumentHandler))
 
 	// Metrics
 	router.Handler(http.MethodGet, "/debug/vars", expvar.Handler())

@@ -13,7 +13,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func (app *application) documentUploadHandler(w http.ResponseWriter, r *http.Request) {
+func (app *application) uploadDocumentHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		TuneID   int64  `json:"tune_id"`
 		FileType string `json:"file_type"`
@@ -159,6 +159,96 @@ func (app *application) documentUploadHandler(w http.ResponseWriter, r *http.Req
 	headers.Set("Location", fmt.Sprintf("/v1/documents/%d", doc.ID))
 
 	err = app.writeJSON(w, http.StatusCreated, envelope{"doc": doc}, headers)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) listDocumentsForTuneHandler(w http.ResponseWriter, r *http.Request) {
+	tuneID, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	tune, err := app.models.Tunes.Get(tuneID)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	userInBand, err := app.models.BandMembers.UserIsInBand(app.contextGetUser(r).ID, tune.BandID)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	if !userInBand {
+		app.notPermittedResponse(w, r)
+		return
+	}
+
+	docs, err := app.models.Documents.GetAllDocsForTune(tuneID)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"tune_id": tuneID, "docs": docs}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *application) downloadDocumentHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+
+	// Retrieve document
+	doc, err := app.models.Documents.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	// Retrieve associated tune
+	tune, err := app.models.Tunes.Get(doc.TuneID)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	// Make sure user is in band that owns this tune
+	userInBand, err := app.models.BandMembers.UserIsInBand(app.contextGetUser(r).ID, tune.BandID)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	if !userInBand {
+		app.notPermittedResponse(w, r)
+		return
+	}
+
+	err = app.serveFile(w, doc.FilePath, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}

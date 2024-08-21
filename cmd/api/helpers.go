@@ -122,6 +122,23 @@ func (app *application) writeJSON(w http.ResponseWriter, status int, data envelo
 	return nil
 }
 
+func (app *application) serveFile(w http.ResponseWriter, filepath string, headers http.Header) error {
+	file, err := os.Open(filepath)
+	if err != nil {
+		return err
+	}
+
+	for key, value := range headers {
+		w.Header()[key] = value
+	}
+
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.WriteHeader(http.StatusOK)
+	io.Copy(w, file)
+
+	return nil
+}
+
 func (app *application) readString(qs url.Values, key string, defaultValue string) string {
 	s := qs.Get(key)
 
