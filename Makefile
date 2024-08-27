@@ -89,7 +89,7 @@ build/api:
 # PRODUCTION
 # ==================================================================================== #
 
-production_host_ip = '143.198.168.72'
+production_host_ip = 'api.gazebosoftware.com'
 
 ## production/connect: connect to the production server
 .PHONY: production/connect
