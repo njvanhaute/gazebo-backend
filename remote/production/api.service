@@ -2,8 +2,7 @@
 # Human-readable name for the service.
 Description=Gazebo API service
 
-# Don't start until PostgreSQL is running and network is online
-After=postgresql.service
+# Don't start until network is online
 After=network-online.target
 Wants=network-online.target
 
@@ -13,14 +12,14 @@ StartLimitIntervalSec=600
 StartLimitBurst=5
 
 [Service]
-# Execute the API binary as the gazebo user, loading the environment variables from
+# Execute the API binary as the ubuntu user, loading the environment variables from
 # /etc/environment and using the working directory /home/gazebo.
 Type=exec
-User=gazebo
-Group=gazebo
+User=ubuntu
+Group=ubuntu
 EnvironmentFile=/etc/environment
-WorkingDirectory=/home/gazebo
-ExecStart=/home/gazebo/api -port=4000 -db-dsn=${GAZEBO_DB_DSN} -env=production -smtp-username=${SMTP_USERNAME} -smtp-password=${SMTP_PASSWORD} -smtp-port=587
+WorkingDirectory=/home/ubuntu
+ExecStart=/home/ubuntu/api -port=4000 -db-dsn=${GAZEBO_DB_DSN} -env=production -smtp-username=${SMTP_USERNAME} -smtp-password=${SMTP_PASSWORD} -smtp-port=587
 
 # Automatically restart the service after a 5-second wait if it exits with a non-zero
 # exit code. If it restarts more than 5 times in 600 seconds, then the rate limit
